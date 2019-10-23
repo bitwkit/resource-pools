@@ -89,7 +89,7 @@ class ResourcePool {
 
     processRequests() {
         this.log(2, 'started request processing');
-        
+
         // assign pending requests to idle resources if possible
         while ((this.allocRequests.length > 0) && (this.idleObjects.length > 0)) {
             const allocateRequest = this.allocRequests.shift();
@@ -104,11 +104,11 @@ class ResourcePool {
             this.log(2, 'creating new object');
             const allocateRequest = this.allocRequests.shift();
             this.addObject()
-                .catch( err => allocateRequest.reject(err))
                 .then( obj => {
                     this.log(1, 'allocated request to new resource', obj.constructor.name, ':', obj[idSym]);
                     allocateRequest.resolve(obj);
-                });
+                })
+                .catch(err => allocateRequest.reject(err));
         };
         this.log(2, 'ended request processing');
     }
