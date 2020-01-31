@@ -109,7 +109,7 @@ class ResourcePool {
                     allocateRequest.resolve(obj);
                 })
                 .catch(err => {
-                    this.log(0, 'error allocating request to a new resource', obj.constructor.name, ':', err);
+                    this.log(0, 'error allocating request to a new resource', this.config.constructor.name, ':', err);
                     allocateRequest.reject(err);
                 });
         };
