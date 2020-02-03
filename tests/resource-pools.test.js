@@ -89,25 +89,29 @@ describe('faulty scenarios', () => {
     
     let res1prom;
     test('rejects allocation in case of error on creating a new resource', async () => {
+        expect.assertions(3);
+
         config.arguments[0] = emitError;
-        expect.assertions(2);
+
         res1prom = pool.allocate();
         await expect(res1prom).rejects.toBeUndefined();
+        await new Promise( resolve => setTimeout(resolve, 0) );
         expect(mockFnCreate).toHaveBeenCalledTimes(3);
-        //expect(mockFnClose).toHaveBeenCalledTimes(1); // not sure if it really needs to call close method on initial phase
+        expect(mockFnClose).toHaveBeenCalledTimes(1);
+
         config.arguments[0] = emitReady;
     });
 
     let res2prom, res2;
     test('runs a closing method for resource when it emits an error', async () => {
         res2prom = pool.allocate();
+        res2 = await res2prom;
         await expect(res2prom).resolves.toBeInstanceOf(TestResource);
         expect(mockFnCreate).toHaveBeenCalledTimes(4);
-        res2 = await res2prom;
         res2.do(emitError);
-        await new Promise( resolve => setTimeout(resolve, 0) );
+        await new Promise( resolve => setTimeout(resolve, 1000) );
         expect(mockFnDo).toHaveBeenCalledTimes(2);
-        expect(mockFnClose).toHaveBeenCalledTimes(1);
+        expect(mockFnClose).toHaveBeenCalledTimes(2);
     });
     // res1 - rejected (closed), res2 - closed
 
