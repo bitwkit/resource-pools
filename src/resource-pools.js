@@ -57,6 +57,8 @@ class ResourcePool {
             this.log(0, 'error calling resourse close method:', err);
         };
         if (!this.deleteFromIdle(obj)) this.busyCount--; // if the object was not found in the idle list, it is busy
+        obj.removeAllListeners(readyEventSym);
+        obj.removeAllListeners(errorEventSym);
     }
 
     addObject() {
@@ -71,8 +73,8 @@ class ResourcePool {
                 this.errorCallback(obj);
                 reject(err);
             });
+
             obj.once(readyEventSym, () => {  // only once to resolve initial promise and set callbacks for further allocations
-                obj.once(errorEventSym, () => this.errorCallback(obj));
                 obj.on(readyEventSym, () => this.readyCallback(obj));
                 resolve(obj);
             });
