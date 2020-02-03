@@ -30,12 +30,8 @@ function emitError() { this.emit(errorEventSym) };
 
 // Tests pt 1
 
-describe('successful scenatios', () => {
-    
-    mockFnCreate.mockClear();
-    mockFnDo.mockClear();
-    mockFnClose.mockClear();
-    
+describe('successful scenarios', () => {
+
     const config = {
         constructor: TestResource,
         arguments: [emitReady],
@@ -44,23 +40,25 @@ describe('successful scenatios', () => {
     };
     const pool = new ResourcePool(config);
 
-    let res1, res2;
+    let res1prom, res2prom, res1, res2;
     test('creates a new resource when there\'re no idle ones and the pool size is below max', async () => {
-        res1 = await pool.allocate();
-        expect(mockFnCreate).toHaveBeenCalledTimes(1);
-        res2 = await pool.allocate();
+        expect.assertions(4);
+        res1prom = pool.allocate();
+        res2prom = pool.allocate();
+        await expect(res1prom).resolves.toBeInstanceOf(TestResource);
+        await expect(res2prom).resolves.toBeInstanceOf(TestResource);
+        res1 = await res1prom;
+        res2 = await res2prom;
         expect(mockFnCreate).toHaveBeenCalledTimes(2);
+        expect(res2).not.toBe(res1);
     });
     // res1 - busy, res2 - busy
 
-    
     let res3prom;
     test('doesn\'t create new resource when the pool size is at max', async () => {
         expect.assertions(1);
         res3prom = pool.allocate();
-        await new Promise((resolve, reject) => { // wait for the next cycle
-            setTimeout( () => resolve(), 0 );
-        });
+        await new Promise( resolve => setTimeout(resolve, 0) ); // wait for the next cycle
         expect(mockFnCreate).toHaveBeenCalledTimes(2); // still only two objects created
     });
     // res1 - busy, res2 - busy
@@ -69,48 +67,46 @@ describe('successful scenatios', () => {
     test('allocates a free existing resource after it becomes idle', async () => {
         res1.do(emitReady);
         res3 = await res3prom;
+        expect(mockFnDo).toHaveBeenCalledTimes(1);
         expect(res1).toBe(res3); // the same object is returned
     });
     // res1 - busy, res2 - busy, res3 = res1
-    
+
 });
 
 
 // Tests pt 2
 
 describe('faulty scenarios', () => {
-    
-    mockFnCreate.mockClear();
-    mockFnDo.mockClear();
-    mockFnClose.mockClear();
-    
+
     const config = {
         constructor: TestResource,
-        arguments: [emitError],
+        arguments: [emitReady],
         maxCount: 2,
         log: (function() {})
     };
     const pool = new ResourcePool(config);
     
-    let res1prom, res1;
+    let res1prom;
     test('rejects allocation in case of error on creating a new resource', async () => {
+        config.arguments[0] = emitError;
+        expect.assertions(2);
         res1prom = pool.allocate();
-        res1 = await res1prom;
-        expect(mockFnCreate).toHaveBeenCalledTimes(1);
-        // expect(mockFnClose).toHaveBeenCalledTimes(1); // not sure if it really needs to call close method on initial phase
-        expect(res1prom).rejects.toBe();
+        await expect(res1prom).rejects.toBeUndefined();
+        expect(mockFnCreate).toHaveBeenCalledTimes(3);
+        //expect(mockFnClose).toHaveBeenCalledTimes(1); // not sure if it really needs to call close method on initial phase
+        config.arguments[0] = emitReady;
     });
-    
-    config.arguments = [emitReady];
-    let res2;
+
+    let res2prom, res2;
     test('runs a closing method for resource when it emits an error', async () => {
-        res2 = await pool.allocate();
-        expect(mockFnCreate).toHaveBeenCalledTimes(2);
+        res2prom = pool.allocate();
+        await expect(res2prom).resolves.toBeInstanceOf(TestResource);
+        expect(mockFnCreate).toHaveBeenCalledTimes(4);
+        res2 = await res2prom;
         res2.do(emitError);
-        await new Promise((resolve, reject) => {
-            setTimeout(() => resolve(), 0 );
-        });
-        expect(mockFnDo).toHaveBeenCallesTimes(1);
+        await new Promise( resolve => setTimeout(resolve, 0) );
+        expect(mockFnDo).toHaveBeenCalledTimes(2);
         expect(mockFnClose).toHaveBeenCalledTimes(1);
     });
     // res1 - rejected (closed), res2 - closed
@@ -118,24 +114,19 @@ describe('faulty scenarios', () => {
     let res3;
     test('doesn\'t allocate a previously closed resource', async () => {
         res3 = await pool.allocate();
-        expect(mockFnCreate).toHaveBeenCalledTimes(3);
-        expect(res3).not.toBe(res1);
+        expect(mockFnCreate).toHaveBeenCalledTimes(5);
         expect(res3).not.toBe(res2);
     });
     // res1 - rejected (closed), res2 - closed, res3 - busy
 
     let res4;
     test('doesn\'t allocate a previously closed resource even if it then emits a Ready event', async () => {
-        res1.do(emitReady);
         res2.do(emitReady);
-        await new Promise((resolve, reject) => {
-            setTimeout(() => resolve(), 0);
-        });
+        await new Promise( resolve  => setTimeout(resolve, 0) );
         expect(mockFnDo).toHaveBeenCalledTimes(3);
         res4 = await pool.allocate();
-        expect(res4).not.toBe(res1);
         expect(res4).not.toBe(res2);
     });
     // res1 - rejected (closed), res2 - closed, res3 - busy, res4 - busy
-    
+
 });
