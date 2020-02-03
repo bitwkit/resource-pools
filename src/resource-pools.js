@@ -105,7 +105,7 @@ class ResourcePool {
             const allocateRequest = this.allocRequests.shift();
             this.addObject()
                 .then( obj => {
-                    this.log(1, 'allocated request to new resource', obj.constructor.name, ':', obj[idSym]);
+                    this.log(1, 'allocated request to a new resource', obj.constructor.name, ':', obj[idSym]);
                     allocateRequest.resolve(obj);
                 })
                 .catch(err => {
