@@ -26,6 +26,7 @@ class TestResource extends EventEmitter {
 
 function emitReady() { this.emit(readyEventSym) };
 function emitError() { this.emit(errorEventSym) };
+function emitNothing() { };
 
 
 // Tests pt 1
@@ -134,3 +135,21 @@ describe('faulty scenarios', () => {
     // res1 - rejected (closed), res2 - closed, res3 - busy, res4 - busy
 
 });
+
+describe('timeouts handling', () => {
+
+    const config = {
+        constructor: TestResource,
+        arguments: [emitNothing],
+        maxCount: 2,
+        busyTimeout: 1000,
+        log: (function() {})
+    };
+    const pool = new ResourcePool(config);
+
+    let res1prom;
+    test('rejects allocation request when objects doesn\'t emit ready or error', async () => {
+        // 
+    });
+
+})
