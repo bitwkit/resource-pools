@@ -148,8 +148,13 @@ describe('timeouts handling', () => {
     const pool = new ResourcePool(config);
 
     let res1prom;
-    test('rejects allocation request when objects doesn\'t emit ready or error', async () => {
-        // 
+    test('rejects allocation request when object doesn\'t emit ready or error', async () => {
+        jest.useFakeTimers();
+        expect.assertions(1);
+        res1prom = pool.allocate();
+        await new Promise( resolve => setTimeout(resolve, config.busyTimeout) );
+        await new Promise( resolve => setTimeout(resolve, 0) ); // to ensure allocation resolved, maybe unnecessary
+        expect(res1prom).rejects.toBeUndefined();
     });
 
-})
+});
