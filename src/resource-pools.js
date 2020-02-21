@@ -14,6 +14,8 @@ const readyEventSym = Symbol('readyEventSym'); // reference to 'ready' event emi
 const errorEventSym = Symbol('errorEventSym'); // reference to 'error' event emitted by resource
 const closeMethodSym = Symbol('closeMethodSym'); // reference to resource method to be used to close/delete the resource
 
+const DEFAULT_REQUEST_TIMEOUT = 60000;
+
 // Main
 
 class ResourcePool {
@@ -45,7 +47,6 @@ class ResourcePool {
         this.log(1, 'ready callback for object', obj.constructor.name, ':', obj[idSym]);
         this.busyCount--;
         this.addToIdle(obj);
-        this.processRequests();
     }
 
     errorCallback(obj) {
@@ -62,29 +63,33 @@ class ResourcePool {
     }
 
     addObject() {
-        return new Promise((resolve, reject) => {
-            const obj = new this.config.constructor(...this.config.arguments);
-            obj[idSym] = this.idGen.next().value; // add id to the object
-            this.log(1, 'new resource object', obj.constructor.name, ':', obj[idSym]);
+        const obj = new this.config.constructor(...this.config.arguments);
+        obj[idSym] = this.idGen.next().value; // add id to the object
+        this.log(1, 'new resource object', obj.constructor.name, ':', obj[idSym]);
 
-            this.busyCount++;
+        this.busyCount++;
 
-            obj.once(errorEventSym, (err) => { // only once to reject initial promise
-                this.errorCallback(obj);
-                reject(err);
-            });
+        obj.once(errorEventSym, (err) => {
+            this.errorCallback(obj);
+            this.processRequests();
+        });
 
-            obj.once(readyEventSym, () => {  // only once to resolve initial promise and set callbacks for further allocations
-                obj.on(readyEventSym, () => this.readyCallback(obj));
-                resolve(obj);
-            });
+        obj.on(readyEventSym, () => {
+            this.readyCallback(obj);
+            this.processRequests();
         });
     }
 
     allocate() {
         this.log(2, 'allocating new resource request');
         return new Promise((resolve, reject) => {
-            this.allocRequests.push({resolve, reject});
+            console.log('timeout set to', this.config.requestTimeout || DEFAULT_REQUEST_TIMEOUT);
+            const timeoutHandler = () => {
+                this.log('request timeout!');
+                reject();
+            };
+            const rejectTimeout = setTimeout(timeoutHandler, this.config.requestTimeout || DEFAULT_REQUEST_TIMEOUT);
+            this.allocRequests.push({resolve, rejectTimeout});
             this.processRequests();
         });
     }
@@ -97,24 +102,19 @@ class ResourcePool {
             const allocateRequest = this.allocRequests.shift();
             const obj = this.idleObjects.shift();
             this.busyCount++;
+            clearTimeout(allocateRequest.rejectTimeout);
             allocateRequest.resolve(obj);
             this.log(1, 'allocated request to idle resource', obj.constructor.name, ':', obj[idSym]);
         };
 
         // create new resources if possible for unprocessed requests
-        while ((this.allocRequests.length > 0) && (this.busyCount < this.config.maxCount)) {
+        let toAdd = Math.min(this.config.maxCount - this.busyCount, this.allocRequests.length);
+        while (toAdd > 0) {
             this.log(2, 'creating new object');
-            const allocateRequest = this.allocRequests.shift();
-            this.addObject()
-                .then( obj => {
-                    this.log(1, 'allocated request to a new resource', obj.constructor.name, ':', obj[idSym]);
-                    allocateRequest.resolve(obj);
-                })
-                .catch(err => {
-                    this.log(0, 'error allocating request to a new resource', this.config.constructor.name, ':', err);
-                    allocateRequest.reject(err);
-                });
+            this.addObject();
+            toAdd--;
         };
+
         this.log(2, 'ended request processing');
     }
 }
