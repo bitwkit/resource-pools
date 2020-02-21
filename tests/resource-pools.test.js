@@ -82,7 +82,7 @@ describe('timeouts handling', () => {
 
     const config = {
         constructor: TestResource,
-        arguments: [emitNothing],
+        arguments: [emitReady],
         maxCount: 2,
         idleTimeout: 5000,
         busyTimeout: 500,
@@ -91,9 +91,14 @@ describe('timeouts handling', () => {
     };
     const pool = new ResourcePool(config);
 
+    let res1;
     test('closes resource on busy timeout', async () => {
-        //
-        expect(true).toBe(false);
+        jest.useFakeTimers();
+        expect.assertions(1);
+        res1 = await pool.allocate();
+        res1.do(emitNothing);
+        jest.advanceTimersByTime(config.busyTimeout);
+        expect(mockFnClose).toHaveBeenCalledTimes(1);
     });
 
     test('closes resource on idle timeout', async () => {
