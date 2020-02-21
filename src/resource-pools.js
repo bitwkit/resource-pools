@@ -83,13 +83,8 @@ class ResourcePool {
     allocate() {
         this.log(2, 'allocating new resource request');
         return new Promise((resolve, reject) => {
-            console.log('timeout set to', this.config.requestTimeout || DEFAULT_REQUEST_TIMEOUT);
-            const timeoutHandler = () => {
-                this.log('request timeout!');
-                reject();
-            };
-            const rejectTimeout = setTimeout(timeoutHandler, this.config.requestTimeout || DEFAULT_REQUEST_TIMEOUT);
-            this.allocRequests.push({resolve, rejectTimeout});
+            const rejectTimeout = setTimeout(reject, this.config.requestTimeout || DEFAULT_REQUEST_TIMEOUT);
+            this.allocRequests.push({ resolve, rejectTimeout });
             this.processRequests();
         });
     }
