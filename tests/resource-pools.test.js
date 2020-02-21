@@ -37,7 +37,7 @@ describe('successful scenarios', () => {
         constructor: TestResource,
         arguments: [emitReady],
         maxCount: 2,
-        log: (function() { })
+        log: function() { }
     };
     const pool = new ResourcePool(config);
 
@@ -77,14 +77,14 @@ describe('successful scenarios', () => {
 
 
 // Tests pt 2
-
+/*
 describe('faulty scenarios', () => {
 
     const config = {
         constructor: TestResource,
         arguments: [emitReady],
         maxCount: 2,
-        log: (function() {})
+        log: function() { }
     };
     const pool = new ResourcePool(config);
     
@@ -135,6 +135,10 @@ describe('faulty scenarios', () => {
     // res1 - rejected (closed), res2 - closed, res3 - busy, res4 - busy
 
 });
+*/
+
+
+// Tests pt 3
 
 describe('timeouts handling', () => {
 
@@ -142,18 +146,17 @@ describe('timeouts handling', () => {
         constructor: TestResource,
         arguments: [emitNothing],
         maxCount: 2,
-        busyTimeout: 1000,
-        log: (function() {})
+        requestTimeout: 500,
+        log: (...args) => console.log(new Date().toISOString(), ...args)
     };
     const pool = new ResourcePool(config);
 
     let res1prom;
-    test('rejects allocation request when object doesn\'t emit ready or error', async () => {
+    test('rejects request when no resources are ready within request timeout', async () => {
         jest.useFakeTimers();
         expect.assertions(1);
         res1prom = pool.allocate();
-        await new Promise( resolve => setTimeout(resolve, config.busyTimeout) );
-        await new Promise( resolve => setTimeout(resolve, 0) ); // to ensure allocation resolved, maybe unnecessary
+        jest.advanceTimersByTime(config.requestTimeout);
         expect(res1prom).rejects.toBeUndefined();
     });
 
