@@ -77,68 +77,6 @@ describe('successful scenarios', () => {
 
 
 // Tests pt 2
-/*
-describe('faulty scenarios', () => {
-
-    const config = {
-        constructor: TestResource,
-        arguments: [emitReady],
-        maxCount: 2,
-        log: function() { }
-    };
-    const pool = new ResourcePool(config);
-    
-    let res1prom;
-    test('rejects allocation in case of error on creating a new resource', async () => {
-        expect.assertions(3);
-
-        config.arguments[0] = emitError;
-
-        res1prom = pool.allocate();
-        await expect(res1prom).rejects.toBeUndefined();
-        await new Promise( resolve => setTimeout(resolve, 0) );
-        expect(mockFnCreate).toHaveBeenCalledTimes(3);
-        expect(mockFnClose).toHaveBeenCalledTimes(1);
-
-        config.arguments[0] = emitReady;
-    });
-
-    let res2prom, res2;
-    test('runs a closing method for resource when it emits an error', async () => {
-        res2prom = pool.allocate();
-        res2 = await res2prom;
-        await expect(res2prom).resolves.toBeInstanceOf(TestResource);
-        expect(mockFnCreate).toHaveBeenCalledTimes(4);
-        res2.do(emitError);
-        await new Promise( resolve => setTimeout(resolve, 1000) );
-        expect(mockFnDo).toHaveBeenCalledTimes(2);
-        expect(mockFnClose).toHaveBeenCalledTimes(2);
-    });
-    // res1 - rejected (closed), res2 - closed
-
-    let res3;
-    test('doesn\'t allocate a previously closed resource', async () => {
-        res3 = await pool.allocate();
-        expect(mockFnCreate).toHaveBeenCalledTimes(5);
-        expect(res3).not.toBe(res2);
-    });
-    // res1 - rejected (closed), res2 - closed, res3 - busy
-
-    let res4;
-    test('doesn\'t allocate a previously closed resource even if it then emits a Ready event', async () => {
-        res2.do(emitReady);
-        await new Promise( resolve  => setTimeout(resolve, 0) );
-        expect(mockFnDo).toHaveBeenCalledTimes(3);
-        res4 = await pool.allocate();
-        expect(res4).not.toBe(res2);
-    });
-    // res1 - rejected (closed), res2 - closed, res3 - busy, res4 - busy
-
-});
-*/
-
-
-// Tests pt 3
 
 describe('timeouts handling', () => {
 
@@ -146,10 +84,22 @@ describe('timeouts handling', () => {
         constructor: TestResource,
         arguments: [emitNothing],
         maxCount: 2,
-        requestTimeout: 500,
+        idleTimeout: 5000,
+        busyTimeout: 500,
+        requestTimeout: 1000,
         log: (...args) => console.log(new Date().toISOString(), ...args)
     };
     const pool = new ResourcePool(config);
+
+    test('closes resource on busy timeout', async () => {
+        //
+        expect(true).toBe(false);
+    });
+
+    test('closes resource on idle timeout', async () => {
+        //
+        expect(true).toBe(false);
+    });
 
     let res1prom;
     test('rejects request when no resources are ready within request timeout', async () => {
@@ -158,6 +108,11 @@ describe('timeouts handling', () => {
         res1prom = pool.allocate();
         jest.advanceTimersByTime(config.requestTimeout);
         expect(res1prom).rejects.toBeUndefined();
+    });
+
+    test('retries allocation after resource failure within request timeout', async () => {
+        //
+        expect(true).toBe(false);
     });
 
 });
