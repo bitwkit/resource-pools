@@ -9,8 +9,6 @@ const mockFnCreate = jest.fn( cb => cb() );
 const mockFnDo = jest.fn( cb => cb() );
 const mockFnClose = jest.fn();
 
-jest.useFakeTimers();
-
 class TestResource extends EventEmitter {
     constructor(cb, ...args) {
         super(...args);
@@ -30,6 +28,14 @@ function emitReady() { this.emit(readyEventSym) };
 function emitError() { this.emit(errorEventSym) };
 function emitNothing() { };
 
+
+// Global settings
+
+jest.useFakeTimers();
+
+afterEach(() => {
+    jest.clearAllMocks();
+});
 
 // Tests pt 1
 
@@ -70,7 +76,7 @@ describe('successful scenarios', () => {
 
         res3prom = pool.allocate();
         jest.runAllImmediates();
-        expect(mockFnCreate).toHaveBeenCalledTimes(2); // still only two objects created
+        expect(mockFnCreate).toHaveBeenCalledTimes(0); // still only two objects created
     });
     // res1 - busy, res2 - busy
     
@@ -117,10 +123,10 @@ describe('timeouts handling', () => {
 
         res1 = await res1prom;
         res1.do(emitNothing);
-        expect(mockFnDo).toHaveBeenCalledTimes(1);
+        expect(mockFnDo).toHaveBeenCalledTimes(0);
         
         jest.runAllImmediates();
-        expect(mockFnDo).toHaveBeenCalledTimes(2);
+        expect(mockFnDo).toHaveBeenCalledTimes(1);
 
         expect(mockFnClose).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(config.busyTimeout);
