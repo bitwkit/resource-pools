@@ -49,11 +49,9 @@ describe('successful scenarios', () => {
 
         res1prom = pool.allocate();
         res2prom = pool.allocate();
-        
         expect(mockFnCreate).toHaveBeenCalledTimes(0);
 
         jest.runAllImmediates();
-
         expect(mockFnCreate).toHaveBeenCalledTimes(2);
 
         expect(res1prom).resolves.toBeInstanceOf(TestResource);
@@ -71,9 +69,7 @@ describe('successful scenarios', () => {
         expect.assertions(1);
 
         res3prom = pool.allocate();
-
         jest.runAllImmediates();
-
         expect(mockFnCreate).toHaveBeenCalledTimes(2); // still only two objects created
     });
     // res1 - busy, res2 - busy
@@ -83,15 +79,12 @@ describe('successful scenarios', () => {
         expect.assertions(3);
 
         res1.do(emitReady);
-
         expect(mockFnDo).toHaveBeenCalledTimes(0);
 
         jest.runAllImmediates();
-
         expect(mockFnDo).toHaveBeenCalledTimes(1);
 
         res3 = await res3prom;
-
         expect(res1).toBe(res3); // the same object is returned
     });
     // res1 - busy, res2 - busy, res3 = res1
@@ -103,7 +96,6 @@ describe('successful scenarios', () => {
 
 describe('timeouts handling', () => {
 
-/*
     const config = {
         constructor: TestResource,
         arguments: [emitReady],
@@ -115,20 +107,27 @@ describe('timeouts handling', () => {
     };
     const pool = new ResourcePool(config);
 
-    let res1;
+    let res1prom, res1;
     test('closes resource on busy timeout', async () => {
-        jest.useFakeTimers();
-        expect.assertions(4);
-        res1 = await pool.allocate();
-        expect(res1).toBeInstanceOf(TestResource);
+        expect.assertions(6);
+
+        res1prom = pool.allocate();
+        jest.runAllImmediates();
+        expect(res1prom).resolves.toBeInstanceOf(TestResource);
+
+        res1 = await res1prom;
         res1.do(emitNothing);
         expect(mockFnDo).toHaveBeenCalledTimes(1);
+        
+        jest.runAllImmediates();
+        expect(mockFnDo).toHaveBeenCalledTimes(2);
+
         expect(mockFnClose).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(config.busyTimeout);
-        // jest.runAllTimers();
+        expect(mockFnClose).toHaveBeenCalledTimes(0);
+        jest.runAllImmediates();
         expect(mockFnClose).toHaveBeenCalledTimes(1);
     });
-*/    
 
 /*
     test('doesn\'t close resource when it is ready within busy timeout', async () => {
