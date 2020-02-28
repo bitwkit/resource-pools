@@ -106,8 +106,8 @@ describe('timeouts handling', () => {
         constructor: TestResource,
         arguments: [emitReady],
         maxCount: 2,
-        idleTimeout: 5000,
-        busyTimeout: 500,
+        idleTimeout: 10000,
+        busyTimeout: 100,
         requestTimeout: 1000,
         log: (...args) => console.log(new Date().toISOString(), ...args)
     };
@@ -137,23 +137,40 @@ describe('timeouts handling', () => {
         expect(mockFnClose).toHaveBeenCalledTimes(1);
     });
 
-    /* let res2prom;
-    test('rejects request when no resources are ready within request timeout', async () => {
+    let res2prom;
+    test('retries allocation after resource failure until request timeout', async () => {
+        expect.assertions(3);
         config.arguments = [emitNothing];
-        jest.useFakeTimers();
+
+        res2prom = pool.allocate();
+        jest.runAllImmediates();
+
+        let retries = 0;
+
+        while (retries < config.requestTimeout / config.busyTimeout) {
+            jest.advanceTimersByTime(config.busyTimeout);
+            jest.runAllImmediates();
+            retries++;
+        };
+
+        expect(retries).toEqual(9);
+        expect(mockFnCreate).toHaveBeenCalledTimes(retries);
+        expect(mockFnClose).toHaveBeenCalledTimes(retries);
+    });
+
+    
+    /* test('rejects request when no resources are ready within request timeout', async () => {
         expect.assertions(1);
+        config.arguments = [emitNothing];
+        
         res1prom = pool.allocate();
         jest.advanceTimersByTime(config.requestTimeout);
         expect(res2prom).rejects.toBeUndefined();
+        
         config.arguments = [emitReady];
     }); */
   
     /* test('closes resource on idle timeout', async () => {
-        //
-        expect(true).toBe(false);
-    }); */
-
-/*     test('retries allocation after resource failure within request timeout', async () => {
         //
         expect(true).toBe(false);
     }); */
