@@ -105,11 +105,26 @@ class ResourcePool {
         });
     }
 
+    deleteRequest(request)  {
+        const index = this.allocRequests.indexOf(request);
+        if (index >= 0) {
+            this.allocRequests.splice(index, 1);
+            return true;
+        };
+        return false;
+    };
+
     allocate() {
         this.log(2, 'allocating new resource request');
         return new Promise((resolve, reject) => {
-            const rejectTimeout = setTimeout(reject, this.config.requestTimeout || DEFAULT_REQUEST_TIMEOUT);
-            this.allocRequests.push({ resolve, rejectTimeout });
+            const request = { resolve };
+            request.rejectTimeout = setTimeout(() => {
+                // remove request from the array and reject it on timeout
+                this.log(0, 'request rejected on timeout');
+                this.deleteRequest(request);
+                reject();
+            }, this.config.requestTimeout || DEFAULT_REQUEST_TIMEOUT);
+            this.allocRequests.push(request);
             this.processRequests();
         });
     }
