@@ -14,7 +14,9 @@ const readyEventSym = Symbol('readyEventSym'); // reference to 'ready' event emi
 const errorEventSym = Symbol('errorEventSym'); // reference to 'error' event emitted by resource
 const closeMethodSym = Symbol('closeMethodSym'); // reference to resource method to be used to close/delete the resource
 
-const DEFAULT_REQUEST_TIMEOUT = 60000;
+const DEFAULT_BUSY_TIMEOUT = 1000 * 60;
+const DEFAULT_IDLE_TIMEOUT = 1000 * 60 * 60 * 24;
+const DEFAULT_REQUEST_TIMEOUT = 1000 * 60;
 
 // Main
 
@@ -22,10 +24,18 @@ class ResourcePool {
     constructor(config) {
         this.config = config;
         this.idleObjects = [ ];
-        this.busyCount = 0;
+        this.busyObjects = [ ];
         this.allocRequests = [ ];
         this.idGen = idGenerator();
         this.log = (logLevel, ...args) => { this.config.log && this.config.log(logLevel, ...args) };
+    }
+
+    addToBusy(obj) {
+        this.log(2, 'add object', obj.constructor.name, ':', obj[idSym], 'to busy pool');
+        const timeout = setTimeout(() => {
+            this.errorCallback(obj);
+        }, this.config.busyTimeout || DEFAULT_BUSY_TIMEOUT);
+        this.busyObjects.push({ obj, timeout });
     }
 
     addToIdle(obj) {
@@ -33,10 +43,21 @@ class ResourcePool {
         this.idleObjects.push(obj);
     }
 
+    deleteFromBusy(obj) {
+        const index = this.busyObjects.findIndex(elem => elem.obj === obj);
+        if (index >= 0) {
+            this.log(2, 'delete object', obj.constructor.name, ':', obj[idSym], 'from busy pool');
+            clearTimeout(this.busyObjects[index].timeout);
+            this.busyObjects.splice(index, 1);
+            return true;
+        };
+        return false;
+    }
+
     deleteFromIdle(obj) {
-        this.log(2, 'delete object', obj.constructor.name, ':', obj[idSym], 'from idle pool');
         const index = this.idleObjects.indexOf(obj);
         if (index >= 0) {
+            this.log(2, 'delete object', obj.constructor.name, ':', obj[idSym], 'from idle pool');
             this.idleObjects.splice(index, 1);
             return true;
         };
@@ -45,7 +66,7 @@ class ResourcePool {
 
     readyCallback(obj) {
         this.log(1, 'ready callback for object', obj.constructor.name, ':', obj[idSym]);
-        this.busyCount--;
+        this.deleteFromBusy(obj);
         this.addToIdle(obj);
     }
 
@@ -57,7 +78,10 @@ class ResourcePool {
         catch (err) {
             this.log(0, 'error calling resourse close method:', err);
         };
-        if (!this.deleteFromIdle(obj)) this.busyCount--; // if the object was not found in the idle list, it is busy
+
+        this.deleteFromBusy(obj);
+        this.deleteFromIdle(obj);
+        
         obj.removeAllListeners(readyEventSym);
         obj.removeAllListeners(errorEventSym);
     }
@@ -67,7 +91,7 @@ class ResourcePool {
         obj[idSym] = this.idGen.next().value; // add id to the object
         this.log(1, 'new resource object', obj.constructor.name, ':', obj[idSym]);
 
-        this.busyCount++;
+        this.addToBusy(obj);
 
         obj.once(errorEventSym, (err) => {
             this.errorCallback(obj);
@@ -96,14 +120,14 @@ class ResourcePool {
         while ((this.allocRequests.length > 0) && (this.idleObjects.length > 0)) {
             const allocateRequest = this.allocRequests.shift();
             const obj = this.idleObjects.shift();
-            this.busyCount++;
+            this.addToBusy(obj);
             clearTimeout(allocateRequest.rejectTimeout);
             allocateRequest.resolve(obj);
             this.log(1, 'allocated request to idle resource', obj.constructor.name, ':', obj[idSym]);
         };
 
         // create new resources if possible for unprocessed requests
-        let toAdd = Math.min(this.config.maxCount - this.busyCount, this.allocRequests.length);
+        let toAdd = Math.min(this.config.maxCount - this.busyObjects.length, this.allocRequests.length);
         while (toAdd > 0) {
             this.log(2, 'creating new object');
             this.addObject();
