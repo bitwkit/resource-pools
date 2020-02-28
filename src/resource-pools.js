@@ -34,6 +34,7 @@ class ResourcePool {
         this.log(2, 'add object', obj.constructor.name, ':', obj[idSym], 'to busy pool');
         const timeout = setTimeout(() => {
             this.errorCallback(obj);
+            this.processRequests();
         }, this.config.busyTimeout || DEFAULT_BUSY_TIMEOUT);
         this.busyObjects.push({ obj, timeout });
     }
