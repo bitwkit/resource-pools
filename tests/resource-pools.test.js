@@ -129,19 +129,15 @@ describe('timeouts handling', () => {
         expect(mockFnDo).toHaveBeenCalledTimes(1);
 
         expect(mockFnClose).toHaveBeenCalledTimes(0);
-        jest.advanceTimersByTime(config.busyTimeout);
+        jest.advanceTimersByTime(config.busyTimeout - 1); // to ensure it doesn't close the resource before timeout for any reason
+        jest.runAllImmediates();
         expect(mockFnClose).toHaveBeenCalledTimes(0);
+        jest.advanceTimersByTime(1);
         jest.runAllImmediates();
         expect(mockFnClose).toHaveBeenCalledTimes(1);
     });
 
-/*
-    test('doesn\'t close resource when it is ready within busy timeout', async () => {
-        //
-        expect(true).toBe(false);
-    });
-
-    let res2prom;
+    /* let res2prom;
     test('rejects request when no resources are ready within request timeout', async () => {
         config.arguments = [emitNothing];
         jest.useFakeTimers();
@@ -150,16 +146,16 @@ describe('timeouts handling', () => {
         jest.advanceTimersByTime(config.requestTimeout);
         expect(res2prom).rejects.toBeUndefined();
         config.arguments = [emitReady];
-    });
+    }); */
   
-    test('closes resource on idle timeout', async () => {
+    /* test('closes resource on idle timeout', async () => {
         //
         expect(true).toBe(false);
-    });
+    }); */
 
-    test('retries allocation after resource failure within request timeout', async () => {
+/*     test('retries allocation after resource failure within request timeout', async () => {
         //
         expect(true).toBe(false);
-    });
-*/
+    }); */
+    
 });
