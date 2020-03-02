@@ -23,7 +23,7 @@ const DEFAULT_REQUEST_TIMEOUT = 1000 * 60;
 class ResourcePool {
     constructor(config) {
         this.config = config;
-        this.idleObjects = [ ];
+        this.idleObjects = [ ]; // contains objects { obj, timeout }
         this.busyObjects = [ ]; // contains objects { obj, timeout }
         this.allocRequests = [ ]; // contains objects { resolve, rejectTimeout }
         this.idGen = idGenerator();
@@ -47,7 +47,11 @@ class ResourcePool {
 
     addToIdle(obj) {
         this.log(2, 'add object', obj.constructor.name, ':', obj[idSym], 'to idle pool');
-        this.idleObjects.push(obj);
+        const timeout = setTimeout(() => {
+            this.errorCallback(obj);
+            // this.scheduleProcessing(); // processing is likely not needed in this case
+        }, this.config.idleTimeout || DEFAULT_IDLE_TIMEOUT);
+        this.idleObjects.push({ obj, timeout });
     }
 
     deleteFromBusy(obj) {
@@ -62,7 +66,7 @@ class ResourcePool {
     }
 
     deleteFromIdle(obj) {
-        const index = this.idleObjects.indexOf(obj);
+        const index = this.idleObjects.findIndex(elem => elem.obj === obj);
         if (index >= 0) {
             this.log(2, 'delete object', obj.constructor.name, ':', obj[idSym], 'from idle pool');
             this.idleObjects.splice(index, 1);
@@ -141,7 +145,8 @@ class ResourcePool {
         // assign pending requests to idle resources if possible
         while ((this.allocRequests.length > 0) && (this.idleObjects.length > 0)) {
             const allocateRequest = this.allocRequests.shift();
-            const obj = this.idleObjects.shift();
+            const obj = this.idleObjects[0].obj;
+            this.deleteFromIdle(obj);
             this.addToBusy(obj);
             clearTimeout(allocateRequest.rejectTimeout);
             allocateRequest.resolve(obj);
