@@ -183,8 +183,31 @@ describe('timeouts handling', () => {
         config.arguments = [emitReady];
     });
 
-    
-    /* test('closes resource on idle timeout', async () => {
+    let res4prom;
+    test('closes resource on idle timeout', async () => {
+        expect.assertions(3);
+
+        config.idleTimeout = 10000;
+        res4prom = pool.allocate();
+
+        jest.runAllImmediates();
+
+        expect(res4prom).resolves.toBeInstanceOf(TestResource);
+
+        jest.advanceTimersByTime(config.idleTimeout - 1); // to ensure it doesn't close the resource before timeout for any reason
+        jest.runAllImmediates();
+        
+        expect(mockFnClose).toHaveBeenCalledTimes(0);
+
+        jest.advanceTimersByTime(1);
+        jest.runAllImmediates();
+
+        expect(mockFnClose).toHaveBeenCalledTimes(1);
+
+        delete config.idleTimeout;
+    });
+
+    /* test('restarts idle timeout after the resource have been allocated', async () => {
         //
         expect(true).toBe(false);
     }); */
