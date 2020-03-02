@@ -27,14 +27,20 @@ class ResourcePool {
         this.busyObjects = [ ];
         this.allocRequests = [ ];
         this.idGen = idGenerator();
+        this.processImmediate = undefined;
         this.log = (logLevel, ...args) => { this.config.log && this.config.log(logLevel, ...args) };
+    }
+
+    scheduleProcessing() {
+        clearImmediate(this.processImmediate);
+        this.processImmediate = setImmediate(() => this.processRequests());
     }
 
     addToBusy(obj) {
         this.log(2, 'add object', obj.constructor.name, ':', obj[idSym], 'to busy pool');
         const timeout = setTimeout(() => {
             this.errorCallback(obj);
-            this.processRequests();
+            this.scheduleProcessing();
         }, this.config.busyTimeout || DEFAULT_BUSY_TIMEOUT);
         this.busyObjects.push({ obj, timeout });
     }
@@ -96,12 +102,12 @@ class ResourcePool {
 
         obj.once(errorEventSym, (err) => {
             this.errorCallback(obj);
-            this.processRequests();
+            this.scheduleProcessing();
         });
 
         obj.on(readyEventSym, () => {
             this.readyCallback(obj);
-            this.processRequests();
+            this.scheduleProcessing();
         });
     }
 
@@ -125,7 +131,7 @@ class ResourcePool {
                 reject();
             }, this.config.requestTimeout || DEFAULT_REQUEST_TIMEOUT);
             this.allocRequests.push(request);
-            this.processRequests();
+            this.scheduleProcessing();
         });
     }
 
