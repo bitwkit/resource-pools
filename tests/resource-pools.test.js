@@ -37,6 +37,9 @@ afterEach(() => {
     jest.clearAllMocks();
 });
 
+const consoleLogger = (...args) => console.log(new Date().toISOString(), ...args);
+const emptyLogger = () => { };
+
 // Tests pt 1
 
 describe('successful scenarios', () => {
@@ -45,7 +48,7 @@ describe('successful scenarios', () => {
         constructor: TestResource,
         arguments: [emitReady],
         maxCount: 2,
-        log: () => { }
+        log: emptyLogger
     };
     const pool = new ResourcePool(config);
 
@@ -109,7 +112,7 @@ describe('timeouts handling', () => {
             arguments: [emitReady],
             busyTimeout: 100,
             maxCount: 2,
-            log: (...args) => console.log(new Date().toISOString(), ...args)
+            log: emptyLogger
         };
         const pool = new ResourcePool(config);
     
@@ -163,7 +166,7 @@ describe('timeouts handling', () => {
             busyTimeout: 100,
             requestTimeout: 1000,
             maxCount: 2,
-            log: (...args) => console.log(new Date().toISOString(), ...args)
+            log: emptyLogger
         };
         const pool = new ResourcePool(config);
 
@@ -215,7 +218,7 @@ describe('timeouts handling', () => {
             arguments: [emitReady],
             idleTimeout: 10000,
             maxCount: 2,
-            log: (...args) => console.log(new Date().toISOString(), ...args)
+            log: emptyLogger
         };
         const pool = new ResourcePool(config);
 
