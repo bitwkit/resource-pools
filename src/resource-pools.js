@@ -24,10 +24,10 @@ class ResourcePool {
     constructor(config) {
         this.config = config;
         this.idleObjects = [ ];
-        this.busyObjects = [ ];
-        this.allocRequests = [ ];
+        this.busyObjects = [ ]; // contains objects { obj, timeout }
+        this.allocRequests = [ ]; // contains objects { resolve, rejectTimeout }
         this.idGen = idGenerator();
-        this.processImmediate = undefined;
+        this.processImmediate = undefined; // contains a reference to an immediate where the processRequests is scheduled
         this.log = (logLevel, ...args) => { this.config.log && this.config.log(logLevel, ...args) };
     }
 
