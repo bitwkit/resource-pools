@@ -39,6 +39,7 @@ class ResourcePool {
     addToBusy(obj) {
         this.log(2, 'add object', obj.constructor.name, ':', obj[idSym], 'to busy pool');
         const timeout = setTimeout(() => {
+            this.log(3, 'busy timeout reached for object', obj.constructor.name, ':', obj[idSym]);
             this.errorCallback(obj);
             this.scheduleProcessing();
         }, this.config.busyTimeout || DEFAULT_BUSY_TIMEOUT);
@@ -48,6 +49,7 @@ class ResourcePool {
     addToIdle(obj) {
         this.log(2, 'add object', obj.constructor.name, ':', obj[idSym], 'to idle pool');
         const timeout = setTimeout(() => {
+            this.log(3, 'idle timeout reached for object', obj.constructor.name, ':', obj[idSym]);
             this.errorCallback(obj);
             // this.scheduleProcessing(); // processing is likely not needed in this case
         }, this.config.idleTimeout || DEFAULT_IDLE_TIMEOUT);
