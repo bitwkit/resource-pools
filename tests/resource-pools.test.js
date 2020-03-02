@@ -140,7 +140,6 @@ describe('timeouts handling', () => {
             jest.advanceTimersByTime(1);
             jest.runAllImmediates();
             expect(mockFnClose).toHaveBeenCalledTimes(1);
-    
         });
     
         /* let res2prom;
@@ -162,7 +161,7 @@ describe('timeouts handling', () => {
 
         const config = {
             constructor: TestResource,
-            arguments: [emitReady],
+            arguments: [emitNothing],
             busyTimeout: 100,
             requestTimeout: 1000,
             maxCount: 2,
@@ -174,20 +173,14 @@ describe('timeouts handling', () => {
         test('rejects request when no resources are ready within request timeout', async () => {
             expect.assertions(1);
     
-            config.arguments = [emitNothing];
-            
             res1prom = pool.allocate();
             jest.advanceTimersByTime(config.requestTimeout);
             expect(res1prom).rejects.toBeUndefined();
-            
-            config.arguments = [emitReady];
         });
     
         let res2prom;
         test('retries allocation after resource failure until request timeout', async () => {
             expect.assertions(3);
-    
-            config.arguments = [emitNothing];
     
             const expectedCreateCalls = config.requestTimeout / config.busyTimeout;
     
@@ -205,8 +198,6 @@ describe('timeouts handling', () => {
             expect(mockFnClose).toHaveBeenCalledTimes(expectedCreateCalls);
     
             expect(res2prom).rejects.toBeUndefined();
-    
-            config.arguments = [emitReady];
         });
 
     });
@@ -238,7 +229,6 @@ describe('timeouts handling', () => {
             jest.advanceTimersByTime(1);
             jest.runAllImmediates();
             expect(mockFnClose).toHaveBeenCalledTimes(1);
-    
         });
     
         /* test('restarts idle timer after the resource have been allocated', async () => {
