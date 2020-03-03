@@ -24,7 +24,8 @@
     "resource",
     "pool",
     "connection",
-    "worker"
+    "worker",
+    "tedious"
   ],
   "author": "bitwkit",
   "license": "MIT",
