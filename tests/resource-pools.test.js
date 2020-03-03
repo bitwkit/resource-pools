@@ -116,16 +116,15 @@ describe('timeouts handling', () => {
         };
         const pool = new ResourcePool(config);
     
-        let res1prom, res1;
         test('closes resource on busy timeout', async () => {
             expect.assertions(6);
     
-            res1prom = pool.allocate();
+            const resProm = pool.allocate();
             jest.runAllImmediates();
-            expect(res1prom).resolves.toBeInstanceOf(TestResource);
+            expect(resProm).resolves.toBeInstanceOf(TestResource);
     
-            res1 = await res1prom;
-            res1.do(emitNothing);
+            const res = await resProm;
+            res.do(emitNothing);
             expect(mockFnDo).toHaveBeenCalledTimes(0);
             
             jest.runAllImmediates();
@@ -142,18 +141,17 @@ describe('timeouts handling', () => {
             expect(mockFnClose).toHaveBeenCalledTimes(1);
         });
     
-        let res2prom, res2;
         test('clears busy timeout after the resource becomes idle', async () => {
             expect.assertions(2);
     
-            res2prom = pool.allocate();
+            const resProm = pool.allocate();
             jest.runAllImmediates();
     
-            expect(res2prom).resolves.toBeInstanceOf(TestResource);
-            res2 = await res2prom;
+            expect(resProm).resolves.toBeInstanceOf(TestResource);
+            const res = await resProm;
 
             jest.advanceTimersByTime(config.busyTimeout - 1);
-            res2.do(emitReady);
+            res.do(emitReady);
             jest.runAllImmediates();
             jest.advanceTimersByTime(1);
             jest.runAllImmediates();
@@ -174,22 +172,20 @@ describe('timeouts handling', () => {
         };
         const pool = new ResourcePool(config);
 
-        let res1prom;
         test('rejects request when no resources are ready within request timeout', async () => {
             expect.assertions(1);
     
-            res1prom = pool.allocate();
+            const resProm = pool.allocate();
             jest.advanceTimersByTime(config.requestTimeout);
-            expect(res1prom).rejects.toBeUndefined();
+            expect(resProm).rejects.toBeUndefined();
         });
     
-        let res2prom;
         test('retries allocation after resource failure until request timeout', async () => {
             expect.assertions(3);
     
             const expectedCreateCalls = config.requestTimeout / config.busyTimeout;
     
-            res2prom = pool.allocate();
+            resProm = pool.allocate();
             jest.runAllImmediates();
     
             let createCalls = 1;
@@ -202,7 +198,7 @@ describe('timeouts handling', () => {
             expect(mockFnCreate).toHaveBeenCalledTimes(expectedCreateCalls);
             expect(mockFnClose).toHaveBeenCalledTimes(expectedCreateCalls);
     
-            expect(res2prom).rejects.toBeUndefined();
+            expect(resProm).rejects.toBeUndefined();
         });
 
     });
@@ -218,15 +214,14 @@ describe('timeouts handling', () => {
         };
         const pool = new ResourcePool(config);
 
-        let res1prom, res1;
         test('closes resource on idle timeout', async () => {
             expect.assertions(6);
     
-            res1prom = pool.allocate();
+            const res1prom = pool.allocate();
             jest.runAllImmediates();
             expect(res1prom).resolves.toBeInstanceOf(TestResource);
 
-            res1 = await res1prom;
+            const res1 = await res1prom;
 
             res1.do(emitReady);
             jest.runAllImmediates();
@@ -249,29 +244,28 @@ describe('timeouts handling', () => {
             expect(res2).not.toBe(res1); // closed resource is not allocated again
         });
     
-        let res2prom, res3prom, res2, res3;
         test('clears idle timeout after the resource have been allocated', async () => {
             expect.assertions(5);
 
-            res2prom = pool.allocate();
+            const res1prom = pool.allocate();
             jest.runAllImmediates();
-            expect(res2prom).resolves.toBeInstanceOf(TestResource);
+            expect(res1prom).resolves.toBeInstanceOf(TestResource);
 
-            res2 = await res2prom;
+            const res1 = await res1prom;
 
             jest.advanceTimersByTime(config.idleTimeout - 1);
 
-            res2.do(emitReady);
+            res1.do(emitReady);
             jest.runAllImmediates();
             expect(mockFnClose).toHaveBeenCalledTimes(0);
             
-            res3prom = pool.allocate();
+            const res2prom = pool.allocate();
             jest.runAllImmediates();
-            expect(res3prom).resolves.toBeInstanceOf(TestResource);
+            expect(res2prom).resolves.toBeInstanceOf(TestResource);
 
-            res3 = await res3prom;
+            const res2 = await res2prom;
 
-            expect(res3).toBe(res2);
+            expect(res2).toBe(res1);
 
             jest.advanceTimersByTime(1);
             jest.runAllImmediates();
