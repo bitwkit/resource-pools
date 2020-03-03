@@ -280,11 +280,61 @@ describe('timeouts handling', () => {
 
 // Tests pt 3
 
-descripe('miscellaneous', () => {
+describe('miscellaneous', () => {
+
+    const config = {
+        constructor: TestResource,
+        arguments: [emitReady],
+        maxCount: 3,
+        log: emptyLogger
+    };
+    const pool = new ResourcePool(config);
 
     test('allocates most recently used resources first', async () => {
-        // 
-        expect(true).toBe(false);
+        expect.assertions(9);
+
+        res1prom = pool.allocate();
+        res2prom = pool.allocate();
+        res3prom = pool.allocate();
+        jest.runAllImmediates();
+
+        expect(res1prom).resolves.toBeInstanceOf(TestResource);
+        expect(res2prom).resolves.toBeInstanceOf(TestResource);
+        expect(res3prom).resolves.toBeInstanceOf(TestResource);
+
+        res1 = await res1prom;
+        res2 = await res2prom;
+        res3 = await res3prom;
+
+        expect(res1).not.toBe(res2);
+        expect(res2).not.toBe(res3);
+        expect(res3).not.toBe(res1);
+
+        res1.do(emitReady);
+        res2.do(emitReady);
+        res3.do(emitReady);
+        jest.runAllImmediates();
+
+        res4prom = pool.allocate();
+        res5prom = pool.allocate();
+        jest.runAllImmediates();
+
+        res4 = await res4prom;
+        res5 = await res5prom;
+
+        expect(res4).toBe(res3);
+        expect(res5).toBe(res2);
+
+        res4.do(emitReady);
+        res5.do(emitReady);
+        jest.runAllImmediates();
+
+        res6prom = pool.allocate();
+        jest.runAllImmediates();
+
+        res6 = await res6prom;
+
+        expect(res6).toBe(res2);
     });
 
 })
