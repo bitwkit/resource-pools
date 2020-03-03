@@ -220,13 +220,17 @@ describe('timeouts handling', () => {
 
         let res1prom, res1;
         test('closes resource on idle timeout', async () => {
-            expect.assertions(5);
+            expect.assertions(6);
     
             res1prom = pool.allocate();
             jest.runAllImmediates();
             expect(res1prom).resolves.toBeInstanceOf(TestResource);
 
             res1 = await res1prom;
+
+            res1.do(emitReady);
+            jest.runAllImmediates();
+            expect(mockFnDo).toHaveBeenCalledTimes(1);
     
             jest.advanceTimersByTime(config.idleTimeout - 1); // to ensure it doesn't close the resource before timeout for any reason
             jest.runAllImmediates();
