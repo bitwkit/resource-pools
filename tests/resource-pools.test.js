@@ -142,18 +142,23 @@ describe('timeouts handling', () => {
             expect(mockFnClose).toHaveBeenCalledTimes(1);
         });
     
-        /* let res2prom;
-        test('restarts busy timer after the resource becomes idle', async () => {
-            expect.assertions(1);
+        let res2prom, res2;
+        test('clears busy timeout after the resource becomes idle', async () => {
+            expect.assertions(2);
     
-            config.busyTimeout = 100;
+            res2prom = pool.allocate();
+            jest.runAllImmediates();
     
-            res2prom
-    
-            expect(true).toBe(false);
-    
-            delete config.busyTimeout;
-        }); */
+            expect(res2prom).resolves.toBeInstanceOf(TestResource);
+            res2 = await res2prom;
+
+            jest.advanceTimersByTime(config.busyTimeout - 1);
+            res2.do(emitReady);
+            jest.runAllImmediates();
+            jest.advanceTimersByTime(1);
+            jest.runAllImmediates();
+            expect(mockFnClose).toHaveBeenCalledTimes(0);
+        });
 
     });
 
@@ -213,14 +218,15 @@ describe('timeouts handling', () => {
         };
         const pool = new ResourcePool(config);
 
-        let res1prom;
+        let res1prom, res1;
         test('closes resource on idle timeout', async () => {
-            expect.assertions(3);
+            expect.assertions(5);
     
             res1prom = pool.allocate();
-    
             jest.runAllImmediates();
             expect(res1prom).resolves.toBeInstanceOf(TestResource);
+
+            res1 = await res1prom;
     
             jest.advanceTimersByTime(config.idleTimeout - 1); // to ensure it doesn't close the resource before timeout for any reason
             jest.runAllImmediates();
@@ -229,12 +235,44 @@ describe('timeouts handling', () => {
             jest.advanceTimersByTime(1);
             jest.runAllImmediates();
             expect(mockFnClose).toHaveBeenCalledTimes(1);
+
+            const res2prom = pool.allocate();
+            jest.runAllImmediates();
+            expect(res2prom).resolves.toBeInstanceOf(TestResource);
+
+            const res2 = await res2prom;
+
+            expect(res2).not.toBe(res1); // closed resource is not allocated again
         });
     
-        /* test('restarts idle timer after the resource have been allocated', async () => {
-            //
-            expect(true).toBe(false);
-        }); */
+        let res2prom, res3prom, res2, res3;
+        test('clears idle timeout after the resource have been allocated', async () => {
+            expect.assertions(5);
+
+            res2prom = pool.allocate();
+            jest.runAllImmediates();
+            expect(res2prom).resolves.toBeInstanceOf(TestResource);
+
+            res2 = await res2prom;
+
+            jest.advanceTimersByTime(config.idleTimeout - 1);
+
+            res2.do(emitReady);
+            jest.runAllImmediates();
+            expect(mockFnClose).toHaveBeenCalledTimes(0);
+            
+            res3prom = pool.allocate();
+            jest.runAllImmediates();
+            expect(res3prom).resolves.toBeInstanceOf(TestResource);
+
+            res3 = await res3prom;
+
+            expect(res3).toBe(res2);
+
+            jest.advanceTimersByTime(1);
+            jest.runAllImmediates();
+            expect(mockFnClose).toHaveBeenCalledTimes(0);
+        });
 
     });
 
