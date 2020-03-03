@@ -53,7 +53,7 @@ class ResourcePool {
             this.errorCallback(obj);
             // this.scheduleProcessing(); // processing is likely not needed in this case
         }, this.config.idleTimeout || DEFAULT_IDLE_TIMEOUT);
-        this.idleObjects.push({ obj, timeout });
+        this.idleObjects.unshift({ obj, timeout });
     }
 
     deleteFromBusy(obj) {
