@@ -40,6 +40,7 @@ afterEach(() => {
 const consoleLogger = (...args) => console.log(new Date().toISOString(), ...args);
 const emptyLogger = () => { };
 
+
 // Tests pt 1
 
 describe('successful scenarios', () => {
@@ -275,3 +276,15 @@ describe('timeouts handling', () => {
     });
 
 });
+
+
+// Tests pt 3
+
+descripe('miscellaneous', () => {
+
+    test('allocates most recently used resources first', async () => {
+        // 
+        expect(true).toBe(false);
+    });
+
+})
