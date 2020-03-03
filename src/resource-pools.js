@@ -71,6 +71,7 @@ class ResourcePool {
         const index = this.idleObjects.findIndex(elem => elem.obj === obj);
         if (index >= 0) {
             this.log(2, 'delete object', obj.constructor.name, ':', obj[idSym], 'from idle pool');
+            clearTimeout(this.idleObjects[index].timeout);
             this.idleObjects.splice(index, 1);
             return true;
         };
